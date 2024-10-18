@@ -1,24 +1,20 @@
-class Memoria:
-    def __init__(self, politica, qntd_memoria):
-        self.politica = politica
-        self.memoria_fisica = []
-        self.qntd_memoria = qntd_memoria
+paginas_disponiveis = [1, 2, 3, 4, 5, 6]
+sequencia_acessos = [5, 1, 4, 2, 3, 3, 5, 2, 1, 4]
 
-    def alocacao(self, processo):
-        if(processo not in self.memoria_fisica and len(self.memoria_fisica) < self.qntd_memoria):
-            self.memoria_fisica.append(processo)
-        else:
-            self.fifo(processo)
+# Armazena o índice de quando a página vai aparecer
+tempo_para_aparecer = {}
 
-    def fifo(self, processo):
-        if(self.politica == "global"):
-            self.memoria_fisica.pop(0)
-            self.memoria_fisica.append(processo)
+# Para cada página disponível
+for pagina in paginas_disponiveis:
+    if pagina in sequencia_acessos:
+        # Encontrar o índice da próxima ocorrência
+        indice = sequencia_acessos.index(pagina)
+        tempo_para_aparecer[pagina] = indice
+    else:
+        # Se a página não aparecer mais, consideramos que demorará "infinitamente"
+        tempo_para_aparecer[pagina] = float('inf')
 
-lista = Memoria("global", 3)
-lista.alocacao("processo-1")
-lista.alocacao("processo-2")
-lista.alocacao("processo-3")
-lista.alocacao("processo-4")
-lista.alocacao("processo-5")
-print(lista.memoria_fisica[0])
+# Descobrir a página que demora mais para aparecer
+pagina_demora_mais = max(tempo_para_aparecer, key=tempo_para_aparecer.get)
+
+print(f"A página que vai demorar mais para aparecer novamente é: {pagina_demora_mais}")

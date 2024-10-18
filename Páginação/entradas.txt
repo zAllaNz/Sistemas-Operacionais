@@ -1,4 +1,4 @@
-alternancia_circular|5|local|65536|512|75|2
+alternancia_circular|5|local|8192|512|75|2
 processo-0|0|5|16|4096|2 2 3 4 1 3 5 7 6 8
 processo-1|1|5|30|4096|1 2 5 4 8 4 6 7 5 8
 processo-2|2|10|44|2048|2 2 1 4 3 1 1 4 3 2 2 2 1 1 2 4 3 3 1 2

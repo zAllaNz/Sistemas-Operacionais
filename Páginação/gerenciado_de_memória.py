@@ -10,6 +10,7 @@ class Processo:
         self.prioridade = prioridade
         self.qntd_memoria = qntd_memoria
         self.sequencia_acesso = sequencia_acesso
+        self.seq_teste = list(sequencia_acesso)
         self.start = 0
         self.end = 0
         self.memoria_local = []
@@ -50,6 +51,13 @@ class Processo:
     def get_qntd_pag(self):
         return self.qntd_memoria
     
+    def teste(self):
+        self.seq_teste.pop(0)
+        #print(self.seq_teste)
+    
+    def lenght_seq_acesso(self):
+        return len(self.sequencia_acesso)
+    
     def append_memoria_local(self, pos):
         self.memoria_local.append(pos)
         # print(self.memoria_local)
@@ -68,6 +76,8 @@ class Memoria:
         self.memoria_fisica = []
         self.qntd_memoria = qntd_memoria
         self.troca_pag = 0
+        self.clock = 5
+        self.acesso = 2
 
     def __repr__(self):
         return self.memoria_fisica
@@ -86,24 +96,25 @@ class Memoria:
             if (pag in self.memoria_fisica):
                 self.memoria_fisica.remove(pag)
 
-    def alocacao(self, processo, pos):
+    def alocacao(self, processo, pos, lista_processos):
         pagina = processo.get_nome() + "|" + str(processo.get_pag(pos))
         #str(lista_processos[i].get_nome()) + "|" + str(lista_processos[i].sequencia_acesso[j]),
         if(pagina not in self.memoria_fisica):
             self.troca_pag += 1
-            if(len(self.memoria_fisica) < qntd_moldura):
+            if(len(self.memoria_fisica) < qntd_moldura): #first fit
                 self.memoria_fisica.append(pagina)
                 print(f"Página: {str(processo.get_pag(pos))} do processo: {processo.get_nome()} foi alocado na memória")
                 if(self.politica == "local"):
                     processo.append_memoria_local(processo.get_pag(pos))
             elif(len(self.memoria_fisica) >= qntd_moldura):
-                self.fifo(processo, pos)
+                self.otimo(processo, pos, lista_processos)
         else:
             print(f"Página: {pagina} já está na memória física!")
 
     def fifo(self, processo, pos):
         pagina = processo.get_nome() + "|" + str(processo.get_pag(pos))
         if(self.politica == "global"):
+            print(f"Página {pagina} substituiu a página {self.memoria_fisica[0]} na memória física")
             self.memoria_fisica.pop(0)
             self.memoria_fisica.append(pagina)
         elif(self.politica == "local"):
@@ -114,6 +125,48 @@ class Memoria:
             self.memoria_fisica.remove(processo.get_nome() + "|" + str(aux))
             print(f"Página {pagina} substituiu a página {processo.get_nome() + "|" + str(aux)} na memória física")
             self.memoria_fisica.append(pagina)
+
+    def nuf(self):
+        pass
+
+    def otimo(self, processo, pos, lista_processos):
+        processo_subs = processo.get_nome() + "|" + str(processo.get_pag(pos))
+        if(self.politica == "global"):
+            tempo = {}
+            for i, pagina in enumerate(self.memoria_fisica):
+                partes = pagina.split('|')
+                pag = int(partes[1])
+                proc = int(partes[0].split('-')[1])
+                if(pag in lista_processos[proc].seq_teste):
+                    indice = lista_processos[proc].seq_teste.index(pag)
+                    tempo[pag] = (indice, i)
+                else:
+                    tempo[pag] = (float('inf'), i)
+            maior = max(tempo, key=lambda x: tempo[x][0])
+            subs = tempo[maior][1]
+            print(f"Página {processo_subs} substituiu a página {self.memoria_fisica[subs]} na memória física")
+            self.memoria_fisica[subs] = processo_subs
+        elif(self.politica == "local"):
+            lista_aux = []
+            for elemento in self.memoria_fisica:
+                if elemento.startswith(processo.get_nome()):
+                    lista_aux.append(elemento)
+            tempo = {}
+            for i, pagina in enumerate(lista_aux):
+                partes = pagina.split('|')
+                pag = int(partes[1])
+                proc = int(partes[0].split('-')[1])
+                if(pag in lista_processos[proc].seq_teste):
+                    indice = lista_processos[proc].seq_teste.index(pag)
+                    tempo[pag] = (indice, i)
+                else:
+                    tempo[pag] = (float('inf'), i)
+            maior = max(tempo, key=lambda x: tempo[x][0])
+            subs = processo.get_nome() + "|" + str(maior)
+            if(subs in self.memoria_fisica):
+                indice = self.memoria_fisica.index(subs)
+                print(f"Página {processo_subs} substituiu a página {self.memoria_fisica[indice]} na memória física")
+                self.memoria_fisica[indice] = processo_subs
 
 def entrada_arquivo():
     lista_processos = []
@@ -138,6 +191,7 @@ def entrada_arquivo():
 def alternancia_circular(lista_processos, clock, memoria_fisica, acesso):
     clock_total = 0
     n = len(lista_processos)
+    ciclo_atual = 0 
     while(True):
         count = 0
         for i in range(len(lista_processos)):
@@ -157,8 +211,10 @@ def alternancia_circular(lista_processos, clock, memoria_fisica, acesso):
                 lista_processos[i].set_end(aux)
                 start, end = lista_processos[i].get_start() * acesso, lista_processos[i].get_end() * acesso
                 for j in range(start, end):
-                    # print(f"pag process: {lista_processos[i].get_pag(j)}")
-                    memoria_fisica.alocacao(lista_processos[i], j)
+                    #print(f"pag process: {lista_processos[i].get_pag(j)}")
+                    memoria_fisica.alocacao(lista_processos[i], j, lista_processos)
+                    lista_processos[i].teste()
+                    ciclo_atual += 1 
                 lista_processos[i].set_start(aux)
                 print(f"Memória física: {memoria_fisica.get_memoria_fisica()}")
                 # Caso termine o tempo de execução do processo, resete a memoria local e tire suas paginas da memoria física
